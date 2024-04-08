@@ -24,7 +24,7 @@ from cllm.cllm_llama_modeling import delete_false_key_value, jacobi_forward, jac
 DynamicCache.delete_false_key_value = delete_false_key_value
 LlamaForCausalLM.jacobi_forward = jacobi_forward
 
-def jacobi_generate(inputs, model, tokenizer, max_new_tokens, max_new_seq_len):
+def jacobi_generate(inputs, model, tokenizer, max_new_tokens, max_new_seq_len, dev):
     #converge_step = []
     CHAT = int(os.environ.get("CHAT", 0))
     if CHAT:
@@ -48,7 +48,7 @@ def jacobi_generate(inputs, model, tokenizer, max_new_tokens, max_new_seq_len):
         itr+=1
         bsz = 1 # only support batch_size = 1 now
         # randomly initialize the first point of jacobian trajectory
-        random_point = torch.tensor(random.choices(generation[0], k=(max_new_tokens-1)), device="cuda").view(1,-1)
+        random_point = torch.tensor(random.choices(generation[0], k=(max_new_tokens-1)), device=dev).view(1,-1)
         input_ids = torch.cat((first_correct_token.view(1,-1), random_point),dim=-1)
         n_gram_generation, first_correct_token, iter_steps, accurate_length = model.jacobi_forward(input_ids=input_ids, tokenizer=tokenizer, max_new_tokens=max_new_tokens, past_key_values=past_key_values, use_cache = True, prefill_phase = False, chat=chat)
         forward_times += iter_steps
@@ -109,7 +109,8 @@ if __name__ == "__main__":
         cache_dir=args.cache_dir,
         torch_dtype=torch.bfloat16,
         low_cpu_mem_usage=True,
-        device_map='cuda',
+        device_map=args.device,
+        load_in_8bit=True
         # attn_implementation="flash_attention_2",
     )
     tokenizer = transformers.AutoTokenizer.from_pretrained(
@@ -147,11 +148,11 @@ if __name__ == "__main__":
         inputs = tokenizer(user_input, return_tensors="pt").to(args.device)
 
         if not args.chat:
-            tmp_greedy_output, _ = jacobi_generate(inputs, model, tokenizer, args.max_new_tokens, args.max_new_seq_len) #warmup
+            tmp_greedy_output, _ = jacobi_generate(inputs, model, tokenizer, args.max_new_tokens, args.max_new_seq_len, args.device) #warmup
 
         os.environ["CHAT"] = "1"
         t0 = time.time()
-        greedy_output, avg_fast_forwward_count = jacobi_generate(inputs, model, tokenizer, args.max_new_tokens, args.max_new_seq_len)
+        greedy_output, avg_fast_forwward_count = jacobi_generate(inputs, model, tokenizer, args.max_new_tokens, args.max_new_seq_len, args.device)
         
         t1 = time.time()
         
