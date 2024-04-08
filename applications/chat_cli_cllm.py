@@ -110,7 +110,7 @@ if __name__ == "__main__":
         torch_dtype=torch.bfloat16,
         low_cpu_mem_usage=True,
         device_map='cuda',
-        attn_implementation="flash_attention_2",
+        # attn_implementation="flash_attention_2",
     )
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         args.model_path,
