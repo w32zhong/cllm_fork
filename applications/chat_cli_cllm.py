@@ -24,7 +24,7 @@ from cllm.cllm_llama_modeling import delete_false_key_value, jacobi_forward, jac
 DynamicCache.delete_false_key_value = delete_false_key_value
 LlamaForCausalLM.jacobi_forward = jacobi_forward
 
-def jacobi_generate(inputs, model, tokenizer, max_new_tokens, max_new_seq_len, dev):
+def jacobi_generate(inputs, model, tokenizer, max_new_tokens, max_seq_len, dev):
     #converge_step = []
     CHAT = int(os.environ.get("CHAT", 0))
     if CHAT:
@@ -37,6 +37,7 @@ def jacobi_generate(inputs, model, tokenizer, max_new_tokens, max_new_seq_len, d
 
     prompt_len = torch.sum(inputs['attention_mask'], dim=-1)
     generation = inputs['input_ids']
+    output = None
     ### prefill the kv-cache
 
     past_key_values, first_correct_token = model.jacobi_forward(input_ids=inputs['input_ids'], tokenizer=tokenizer, max_new_tokens=max_new_tokens, past_key_values=None, use_cache = True, prefill_phase = True, chat=chat)
@@ -61,12 +62,19 @@ def jacobi_generate(inputs, model, tokenizer, max_new_tokens, max_new_seq_len, d
             eos_reached = True
         
         ### see if next max_new_tokens should be generated & if True, update weights and prepare new input_id 
+        print(tokenizer.decode(n_gram_generation[0]), end=' ', flush=True)
+        breakpoint()
         generation = torch.cat((generation, n_gram_generation), dim=-1)
+        if output is None:
+            output = n_gram_generation
+        else:
+            output = torch.cat((output, n_gram_generation), dim=-1)
 
-        if eos_reached or itr*max_new_tokens > max_new_seq_len:
+        if eos_reached or prompt_len + itr*max_new_tokens > max_seq_len:
+            print()
             break
 
-    return generation, global_accurate_length / forward_times
+    return output, global_accurate_length / forward_times
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
