@@ -63,7 +63,6 @@ def jacobi_generate(inputs, model, tokenizer, max_new_tokens, max_seq_len, dev):
         
         ### see if next max_new_tokens should be generated & if True, update weights and prepare new input_id 
         print(tokenizer.decode(n_gram_generation[0]), end=' ', flush=True)
-        breakpoint()
         generation = torch.cat((generation, n_gram_generation), dim=-1)
         if output is None:
             output = n_gram_generation
@@ -86,7 +85,6 @@ if __name__ == "__main__":
     parser.add_argument("--chat", action="store_true")
     parser.add_argument("--dtype", type=str, default="float16")
     parser.add_argument("--device", type=str, default="cuda:0")
-    parser.add_argument("--cache_dir", type=str, default="")
     parser.add_argument(
         "--max_new_tokens",
         type=int,
@@ -109,12 +107,10 @@ if __name__ == "__main__":
     #if args.use_ds:
     config = transformers.AutoConfig.from_pretrained(
         args.model_path,
-        cache_dir=args.cache_dir,
     )
     model = transformers.AutoModelForCausalLM.from_pretrained(
         args.model_path,
         config=config,
-        cache_dir=args.cache_dir,
         torch_dtype=torch.bfloat16,
         low_cpu_mem_usage=True,
         device_map=args.device,
@@ -123,7 +119,6 @@ if __name__ == "__main__":
     )
     tokenizer = transformers.AutoTokenizer.from_pretrained(
         args.model_path,
-        cache_dir=args.cache_dir,
         model_max_length=2048,
         padding_side="right",
     )
