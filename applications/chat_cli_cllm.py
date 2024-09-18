@@ -50,6 +50,7 @@ def jacobi_generate(inputs, model, tokenizer, max_new_tokens, max_seq_len, dev):
         bsz = 1 # only support batch_size = 1 now
         # randomly initialize the first point of jacobian trajectory
         random_point = torch.tensor(random.choices(generation[0], k=(max_new_tokens-1)), device=dev).view(1,-1)
+        first_correct_token = first_correct_token.to(random_point.device)
         input_ids = torch.cat((first_correct_token.view(1,-1), random_point),dim=-1)
         n_gram_generation, first_correct_token, iter_steps, accurate_length = model.jacobi_forward(input_ids=input_ids, tokenizer=tokenizer, max_new_tokens=max_new_tokens, past_key_values=past_key_values, use_cache = True, prefill_phase = False, chat=chat)
         forward_times += iter_steps

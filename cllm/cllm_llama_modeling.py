@@ -195,6 +195,7 @@ def jacobi_forward(
             logits = logits.float()
             all_shift_one_token = torch.argmax(torch.nn.functional.softmax(logits, dim=-1) / 0.001, dim=-1)
 
+            all_shift_one_token = all_shift_one_token.to(current_point.device)
             next_point = torch.cat((current_point[0, 0].view(1,-1), all_shift_one_token[0, :seq_length-1].view(1,-1)), dim=-1)
 
             first_false_index = torch.where(torch.eq(current_point[0], next_point[0]) == False)[0]
